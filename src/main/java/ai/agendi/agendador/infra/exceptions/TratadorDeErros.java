@@ -14,58 +14,80 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import javax.naming.AuthenticationException;
 import java.nio.file.AccessDeniedException;
-
-// criar ValidacaoExceptions e Adiconar Excessao Security (badcredentials)
+import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class TratadorDeErros {
 
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity tratarErro404() {
-        return ResponseEntity.notFound().build();
+    public ResponseEntity<ResponseError> tratarErro404(EntityNotFoundException ex) {
+        ResponseError response = new ResponseError(
+                ex.getMessage(),
+                HttpStatus.NOT_FOUND,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     @ExceptionHandler(ValidacaoException.class)
-    public ResponseEntity tratarErroDeProjeto(ValidacaoException e) {
-        return ResponseEntity.badRequest().body(e.getMessage());
+    public ResponseEntity<ResponseError> tratarErroDeProjeto(ValidacaoException ex) {
+        ResponseError response = new ResponseError(
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity tratarErro400(MethodArgumentNotValidException ex) {
-        var erros = ex.getFieldErrors();
-        ex.printStackTrace();
-        return ResponseEntity.badRequest().body(erros.stream().map(DadosErroValidacao::new).toList());
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity tratarErro400(HttpMessageNotReadableException ex) {
-        return ResponseEntity.badRequest().body(ex.getMessage());
+    @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class})
+    public ResponseEntity<ResponseError> tratarErro400(MethodArgumentNotValidException ex) {
+        ResponseError response = new ResponseError(
+                ex.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity tratarErroAuthentication() {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Falha na autenticação");
+    public ResponseEntity<ResponseError> tratarErroAuthentication(AuthenticationException ex) {
+        ResponseError response = new ResponseError(
+                "Não autorizado: " + ex.getMessage(),
+                HttpStatus.UNAUTHORIZED,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity tratarErroAcessoNegado() {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acesso negado");
+    public ResponseEntity<ResponseError> tratarErroAcessoNegado(AccessDeniedException ex) {
+        ResponseError response = new ResponseError(
+                "Acesso negado:" + ex.getMessage(),
+                HttpStatus.FORBIDDEN,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ResponseEntity tratarErroIntegridadeNosDados(DataIntegrityViolationException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body("Erro de integridade nos dados." + ex.getMostSpecificCause().getMessage());
+    public ResponseEntity<ResponseError> tratarErroIntegridadeNosDados(DataIntegrityViolationException ex) {
+        ResponseError response = new ResponseError(
+                "Erro de integridade nos dados." + ex.getMostSpecificCause().getMessage(),
+                HttpStatus.CONFLICT,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity tratarErro500(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro: " +ex.getLocalizedMessage());
-    }
-
-    private record DadosErroValidacao(String campo, String mensagem) {
-        public DadosErroValidacao(FieldError erro) {
-            this(erro.getField(), erro.getDefaultMessage());
-        }
+    public ResponseEntity<ResponseError> tratarErro500(Exception ex) {
+        ex.printStackTrace();
+        ResponseError response = new ResponseError(
+                "Erro: " +ex.getLocalizedMessage(),
+                HttpStatus.CONFLICT,
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

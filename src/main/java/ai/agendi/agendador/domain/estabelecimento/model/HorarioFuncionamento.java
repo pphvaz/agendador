@@ -1,12 +1,16 @@
 package ai.agendi.agendador.domain.estabelecimento.model;
 
+import ai.agendi.agendador.domain.estabelecimento.enums.DiaSemana;
 import jakarta.persistence.*;
 
 import java.time.LocalTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "horarios_funcionamento")
+@Table(
+        name = "horarios_funcionamento",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"estabelecimento_id", "diaSemana"})
+)
 public class HorarioFuncionamento {
 
     @Id
@@ -20,6 +24,7 @@ public class HorarioFuncionamento {
     private LocalTime horaFim;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "estabelecimento_id", nullable = false)
     private Estabelecimento estabelecimento;
 
     public Long getId() {
@@ -67,11 +72,11 @@ public class HorarioFuncionamento {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         HorarioFuncionamento that = (HorarioFuncionamento) o;
-        return Objects.equals(id, that.id);
+        return Objects.equals(getId(), that.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Objects.hashCode(getId());
     }
 }

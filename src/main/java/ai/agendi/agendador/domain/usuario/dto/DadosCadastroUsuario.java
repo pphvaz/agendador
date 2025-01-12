@@ -3,9 +3,7 @@ package ai.agendi.agendador.domain.usuario.dto;
 import jakarta.validation.constraints.*;
 
 public record DadosCadastroUsuario(
-        @NotEmpty
-        @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "O login deve conter apenas letras, números e underline.")
-        String login,
+
         @NotEmpty
         @Size(min = 8)
         String senha,

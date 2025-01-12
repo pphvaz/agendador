@@ -1,5 +1,6 @@
 package ai.agendi.agendador.domain.usuario.controller;
 
+import ai.agendi.agendador.domain.usuario.dto.DadosAtualizacaoCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
 import ai.agendi.agendador.domain.usuario.dto.DadosRespostaCliente;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -20,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.util.Random;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,36 +42,53 @@ class ClienteControllerTest {
     @PostConstruct
     public void populateData() {
         if (clienteRepository.count() == 0) {
-            DadosCadastroUsuario user1 = new DadosCadastroUsuario("pedro99", "password99", "pedro99@mail.com", "1234567890");
-            DadosCadastroCliente cliente1 = new DadosCadastroCliente(user1, "Pedro Vaz", LocalDate.of(1999, 2, 6), "12345678901");
+            Cliente cliente1 = new Cliente(
+                    "cliente1@mail.com",
+                    "doasbodibsaiudboasbdoasbndnasp",
+                    "1234567890",
+                    "Carlos Silva",
+                    "11111111111",
+                    LocalDate.of(1990, 5, 15)
+            );
 
-            DadosCadastroUsuario user2 = new DadosCadastroUsuario("pedro100", "password100", "pedro100@mail.com", "1234567891");
-            DadosCadastroCliente cliente2 = new DadosCadastroCliente(user2, "João Silva", LocalDate.of(1985, 6, 15), "98765432100");
+            Cliente cliente2 = new Cliente(
+                    "cliente2@mail.com",
+                    "12b3io1bebowbnsaodboasads12",
+                    "0987654321",
+                    "Ana Oliveira",
+                    "22222222222",
+                    LocalDate.of(1985, 8, 22)
+            );
 
-            DadosCadastroUsuario user3 = new DadosCadastroUsuario("pedro101", "password101", "pedro101@mail.com", "1234567892");
-            DadosCadastroCliente cliente3 = new DadosCadastroCliente(user3, "Maria Souza", LocalDate.of(1990, 10, 20), "45678912300");
+            Cliente cliente3 = new Cliente(
+                    "cliente3@mail.com",
+                    "1b2oi12oinoienwp12inepn1p2nep",
+                    "9876543210",
+                    "Roberto Souza",
+                    "33333333333",
+                    LocalDate.of(2000, 12, 1)
+            );
 
             // Save them directly in your repository
-            clienteRepository.save(new Cliente(cliente1));
-            clienteRepository.save(new Cliente(cliente2));
-            clienteRepository.save(new Cliente(cliente3));
+            clienteRepository.save(cliente1);
+            clienteRepository.save(cliente2);
+            clienteRepository.save(cliente3);
         }
     }
 
     @Test
     void shouldReturnADadosRespostaClienteWhenDataIsSaved() {
         ResponseEntity<String> response = restTemplate
-                .getForEntity("/clientes/1", String.class);
+                .getForEntity("/clientes/2", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         DocumentContext documentContext = JsonPath.parse(response.getBody());
         Number id = documentContext.read("$.id");
         String nome = documentContext.read("$.nome");
         String email = documentContext.read("$.email");
-        assertThat(id).isEqualTo(1);
-        assertThat(nome).isEqualTo("Pedro Vaz");
-        assertThat(email).isEqualTo("pedro99@mail.com");
-
+        assertThat(id).isEqualTo(2);
+        assertThat(nome).isEqualTo("João Silva");
+        assertThat(email).isEqualTo("pedro100@mail.com");
     }
 
     @Test
@@ -79,8 +101,7 @@ class ClienteControllerTest {
     @Test
     @Transactional
     void shouldCreateANewClienteWithValidInformation() {
-        DadosCadastroUsuario newUsuario = new DadosCadastroUsuario("pedro999","12345678","pedro@mail.com","12991261390");
-        DadosCadastroCliente newCliente = new DadosCadastroCliente(newUsuario,"Pedro", LocalDate.of(1999,02,06),"48344088097");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"48344088097");
         ResponseEntity<Void> response = restTemplate
                 .postForEntity("/clientes", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -99,18 +120,8 @@ class ClienteControllerTest {
     }
 
     @Test
-    void shouldNotCreateANewClienteWithExistingLogin() {
-        DadosCadastroUsuario newUsuario = new DadosCadastroUsuario("pedro99","12345678","pedro@mail.com","12991261390");
-        DadosCadastroCliente newCliente = new DadosCadastroCliente(newUsuario,"Pedro", LocalDate.of(1999,02,06),"48344088097");
-        ResponseEntity<Void> response = restTemplate
-                .postForEntity("/clientes", newCliente, Void.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-    }
-
-    @Test
     void shouldNotCreateANewClienteWithExistingEmail() {
-        DadosCadastroUsuario newUsuario = new DadosCadastroUsuario("pedro99","12345678","pedro99@mail.com","12991261390");
-        DadosCadastroCliente newCliente = new DadosCadastroCliente(newUsuario,"Pedro", LocalDate.of(1999,02,06),"48344088097");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro99@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"48344088097");
         ResponseEntity<Void> response = restTemplate
                 .postForEntity("/clientes", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
@@ -118,8 +129,7 @@ class ClienteControllerTest {
 
     @Test
     void shouldNotCreateANewClienteWithExistingCpf() {
-        DadosCadastroUsuario newUsuario = new DadosCadastroUsuario("pedro99","12345678","pedro99@mail.com","12991261390");
-        DadosCadastroCliente newCliente = new DadosCadastroCliente(newUsuario,"Pedro", LocalDate.of(1999,02,06),"47450456893");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro929@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"11111111111");
         ResponseEntity<Void> response = restTemplate
                 .postForEntity("/clientes", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
@@ -127,8 +137,7 @@ class ClienteControllerTest {
 
     @Test
     void shouldNotCreateANewClienteWithExistingCelular() {
-        DadosCadastroUsuario newUsuario = new DadosCadastroUsuario("pedro","12349nk79","pedro@mail.com","1234567890");
-        DadosCadastroCliente newCliente = new DadosCadastroCliente(newUsuario,"Pedro", LocalDate.of(1999,02,06),"48344088097");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("ped239@mail.com","pedro999","1234567890","Pedro", LocalDate.of(1999,02,06),"11113211111");
         ResponseEntity<Void> response = restTemplate
                 .postForEntity("/clientes", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
@@ -136,11 +145,81 @@ class ClienteControllerTest {
 
     @Test
     void shouldNotCreateANewClienteWithInvalidTooShortPassword() {
-        DadosCadastroUsuario newUsuario = new DadosCadastroUsuario("pedro","1234","pedro@mail.com","12991261390");
-        DadosCadastroCliente newCliente = new DadosCadastroCliente(newUsuario,"Pedro", LocalDate.of(1999,02,06),"98765432110");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("pe321239@mail.com","o999","1234532890","Pedro", LocalDate.of(1999,02,06),"11113211111");
         ResponseEntity<Void> response = restTemplate
                 .postForEntity("/clientes", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void shouldNotDeleteByUnknownId(){
+        ResponseEntity<Void> response = restTemplate
+                .exchange("/clientes/delete/99999", HttpMethod.DELETE, null, Void.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @Transactional
+    void shouldDeleteById(){
+        ResponseEntity<Void> response = restTemplate
+                .exchange("/clientes/delete/1", HttpMethod.DELETE, null, Void.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Retrieve the entity by ID
+        ResponseEntity<DadosRespostaCliente> getResponse = restTemplate
+                .getForEntity("/clientes/1", DadosRespostaCliente.class);
+
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldNotUpdateAClienteThatDoesntExists(){
+        // Create the DadosAtualizacaoCliente with a non-existent id
+        DadosAtualizacaoCliente dadosAtualizacao = new DadosAtualizacaoCliente();
+        dadosAtualizacao.setId(99999L);
+        dadosAtualizacao.setNovoNome("Novo Nome");
+
+        // Perform the PUT request with the dadosAtualizacao object in the body
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/clientes/update",
+                HttpMethod.PUT,
+                new HttpEntity<>(dadosAtualizacao),
+                Void.class
+        );
+
+        // Assert that the status code is NOT_FOUND
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void shouldUpdateAnExistingClienteName() {
+        // Create the DadosAtualizacaoCliente with a non-existent id
+        String randomName = generateRandomName();
+        DadosAtualizacaoCliente dadosAtualizacao = new DadosAtualizacaoCliente();
+        dadosAtualizacao.setId(3L);
+        dadosAtualizacao.setNovoNome(randomName);
+
+        // Perform the PUT request with the dadosAtualizacao object in the body
+        ResponseEntity<DadosRespostaCliente> response = restTemplate.exchange(
+                "/clientes/update",
+                HttpMethod.PUT,
+                new HttpEntity<>(dadosAtualizacao),
+                DadosRespostaCliente.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().nome()).isEqualTo(randomName);
+    }
+
+    private String generateRandomName() {
+        String[] firstNames = {"Pedro", "Maria", "João", "Ana", "Carlos", "Julia", "Lucas", "Fernanda", "Gabriel", "Beatriz"};
+        String[] lastNames = {"Silva", "Santos", "Oliveira", "Souza", "Pereira", "Costa", "Almeida", "Ferreira", "Ribeiro", "Lima"};
+
+        Random random = new Random();
+
+        String firstName = firstNames[random.nextInt(firstNames.length)];
+        String lastName = lastNames[random.nextInt(lastNames.length)];
+
+        return firstName + " " + lastName;
     }
 
     void shouldReturnAllDadosRespostaClientesWhenListIsRequested() {}
@@ -152,15 +231,9 @@ class ClienteControllerTest {
 
     void shouldRejectUsersWhoAreNotOwnersOfTheIdSearched() {}
 
-    void shouldUpdateAnExistingCliente() {}
-
     void shouldNotUpdateAClienteThatDoesNotExist() {}
 
     void shouldNotUpdateAClienteThatDoesntOwnTheProfile() {}
-
-    void shouldLogicDeleteAnExistingCliente() {}
-
-    void shouldNotDeleteAClienteThatDoesNotExist() {}
 
     void shouldNotAllowDeletionOfClienteThatDoesNotOwnTheProfile() {}
 

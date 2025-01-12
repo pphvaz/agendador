@@ -1,4 +1,4 @@
-package ai.agendi.agendador.domain.estabelecimento.model;
+package ai.agendi.agendador.domain.estabelecimento.enums;
 
 public enum DiaSemana {
     SEGUNDA_FEIRA,
