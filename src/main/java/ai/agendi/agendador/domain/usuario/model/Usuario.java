@@ -1,22 +1,23 @@
 package ai.agendi.agendador.domain.usuario.model;
 
 
+import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
 import ai.agendi.agendador.domain.usuario.enums.Perfil;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
-public class Usuario implements Serializable {
+public class Usuario implements Serializable, UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,6 +58,19 @@ public class Usuario implements Serializable {
     )
     @Enumerated(EnumType.STRING)
     private Set<Perfil> perfis = new HashSet<>();
+
+    public Usuario (){}
+
+    public Usuario(DadosCadastroUsuario dadosUsuario) {
+        this.email = dadosUsuario.email();
+        this.senha = dadosUsuario.senha();
+        this.celular = dadosUsuario.celular();
+        this.nome = dadosUsuario.nome();
+        this.dataNascimento = dadosUsuario.dataNascimento();
+        this.perfis = dadosUsuario.perfis();
+        this.diaDeCadastro = LocalDateTime.now();
+        this.ativo = true;
+    }
 
     public Long getId() {
         return id;
@@ -157,5 +171,40 @@ public class Usuario implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hashCode(getId());
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return this.perfis;
+    }
+
+    @Override
+    public String getPassword() {
+        return senha;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }

@@ -16,7 +16,7 @@ public class Prestador extends Usuario {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @NotNull
-    @Column(nullable = false, updatable = false)
+    @JoinColumn(nullable = false, updatable = false)
     private Estabelecimento estabelecimento;
 
     private boolean isManager;

@@ -3,6 +3,7 @@ package ai.agendi.agendador.domain.usuario.model;
 import ai.agendi.agendador.domain.endereco.model.Endereco;
 import ai.agendi.agendador.domain.usuario.dto.DadosAtualizacaoCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroCliente;
+import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 
@@ -19,20 +20,29 @@ public class Cliente extends Usuario {
     @Column(unique = true, nullable = false, updatable = false)
     private String cpf;
 
-    @OneToOne(cascade = CascadeType.ALL, mappedBy = "cliente")
+    @OneToOne(cascade = CascadeType.ALL)
     private Endereco endereco;
 
     @Column(precision = 15, scale = 2, nullable = false)
-    private BigDecimal saldo;
+    private BigDecimal saldo = BigDecimal.ZERO;
 
     public Cliente() {}
 
-    public @Pattern(regexp = "\\d{11}") String getCpf() {
-        return cpf;
+    public Cliente(DadosCadastroUsuario dadosUsuario, DadosCadastroCliente dadosCliente) {
+        super(dadosUsuario);
+        this.cpf = dadosCliente.cpf();
     }
 
-    public void setCpf(@Pattern(regexp = "\\d{11}") String cpf) {
-        this.cpf = cpf;
+    public Endereco getEndereco() {
+        return endereco;
+    }
+
+    public void setEndereco(Endereco endereco) {
+        this.endereco = endereco;
+    }
+
+    public @Pattern(regexp = "\\d{11}") String getCpf() {
+        return cpf;
     }
 
     public BigDecimal getSaldo() {

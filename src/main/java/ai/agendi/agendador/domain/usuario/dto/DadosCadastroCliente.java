@@ -1,18 +1,17 @@
 package ai.agendi.agendador.domain.usuario.dto;
 
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.br.CPF;
 
 import java.time.LocalDate;
 
 public record DadosCadastroCliente(
-        @Email
-        @NotEmpty
+
+        @NotEmpty(message = "E-mail não pode ser nulo.")
         String email,
 
         @NotEmpty
-        @Size(min = 8)
+        @Size(min = 8, message = "Senha deve ter no mínimo de 8 caracteres.")
         String senha,
 
         @NotEmpty

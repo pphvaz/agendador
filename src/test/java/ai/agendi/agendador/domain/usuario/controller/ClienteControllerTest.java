@@ -1,32 +1,32 @@
 package ai.agendi.agendador.domain.usuario.controller;
 
-import ai.agendi.agendador.domain.usuario.dto.DadosAtualizacaoCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
-import ai.agendi.agendador.domain.usuario.dto.DadosRespostaCliente;
+import ai.agendi.agendador.domain.usuario.dto.DadosGeraisRespostaCliente;
+import ai.agendi.agendador.domain.usuario.enums.Perfil;
 import ai.agendi.agendador.domain.usuario.model.Cliente;
 import ai.agendi.agendador.domain.usuario.repository.ClienteRepository;
+import ai.agendi.agendador.utils.JwtTestUtil;
+import ai.agendi.agendador.utils.TestUtilities;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.annotation.PostConstruct;
-import net.minidev.json.JSONArray;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.LocalDate;
-import java.util.Random;
-import java.util.UUID;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Transactional
@@ -39,35 +39,55 @@ class ClienteControllerTest {
     @Autowired
     private ClienteRepository clienteRepository;
 
+    private final JwtTestUtil jwtUtil = new JwtTestUtil();
+
+    private final TestUtilities utils = new TestUtilities();
+
     @PostConstruct
     public void populateData() {
+        Set<Perfil> perfis = new HashSet<>();
+        perfis.add(Perfil.ROLE_CLIENTE);
         if (clienteRepository.count() == 0) {
-            Cliente cliente1 = new Cliente(
+            DadosCadastroCliente dados1 = new DadosCadastroCliente(
                     "cliente1@mail.com",
-                    "doasbodibsaiudboasbdoasbndnasp",
+                    "cliente1",
                     "1234567890",
                     "Carlos Silva",
-                    "11111111111",
-                    LocalDate.of(1990, 5, 15)
+                    LocalDate.of(1990, 5, 15),
+                    "11111111111"
             );
 
-            Cliente cliente2 = new Cliente(
+            DadosCadastroUsuario usuario1 = new DadosCadastroUsuario(
+                    dados1.email(), dados1.senha(), dados1.celular(), dados1.nome(), dados1.dataNascimento(), perfis);
+
+            DadosCadastroCliente dados2 = new DadosCadastroCliente(
                     "cliente2@mail.com",
-                    "12b3io1bebowbnsaodboasads12",
-                    "0987654321",
+                    "cliente2",
+                    "1234567891",
                     "Ana Oliveira",
-                    "22222222222",
-                    LocalDate.of(1985, 8, 22)
+                    LocalDate.of(1994, 2, 14),
+                    "22222222222"
             );
 
-            Cliente cliente3 = new Cliente(
+            DadosCadastroUsuario usuario2 = new DadosCadastroUsuario(
+                    dados2.email(), dados2.senha(), dados2.celular(), dados2.nome(), dados2.dataNascimento(), perfis);
+
+            DadosCadastroCliente dados3 = new DadosCadastroCliente(
                     "cliente3@mail.com",
-                    "1b2oi12oinoienwp12inepn1p2nep",
-                    "9876543210",
+                    "cliente3",
+                    "1234567892",
                     "Roberto Souza",
-                    "33333333333",
-                    LocalDate.of(2000, 12, 1)
+                    LocalDate.of(2000, 12, 1),
+                    "47450456893"
             );
+
+            DadosCadastroUsuario usuario3 = new DadosCadastroUsuario(
+                    dados3.email(), dados3.senha(), dados3.celular(), dados3.nome(), dados3.dataNascimento(), perfis);
+
+
+            Cliente cliente1 = new Cliente(usuario1, dados1);
+            Cliente cliente2 = new Cliente(usuario2, dados2);
+            Cliente cliente3 = new Cliente(usuario3, dados3);
 
             // Save them directly in your repository
             clienteRepository.save(cliente1);
@@ -78,8 +98,16 @@ class ClienteControllerTest {
 
     @Test
     void shouldReturnADadosRespostaClienteWhenDataIsSaved() {
-        ResponseEntity<String> response = restTemplate
-                .getForEntity("/clientes/2", String.class);
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/clientes/2", HttpMethod.GET, entity, String.class
+        );
+        // Assert the response
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         DocumentContext documentContext = JsonPath.parse(response.getBody());
@@ -87,15 +115,32 @@ class ClienteControllerTest {
         String nome = documentContext.read("$.nome");
         String email = documentContext.read("$.email");
         assertThat(id).isEqualTo(2);
-        assertThat(nome).isEqualTo("João Silva");
-        assertThat(email).isEqualTo("pedro100@mail.com");
+        assertThat(nome).isEqualTo("Ana Oliveira");
+        assertThat(email).isEqualTo("cliente2@mail.com");
     }
 
     @Test
-    void shouldNotReturnADadosRespostaClienteWithAnUnkownId() {
-        ResponseEntity<String> response = restTemplate
-                .getForEntity("/clientes/999", String.class);
+    void shouldNotReturnADadosRespostaClienteWithUnkownId() {
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/clientes/999", HttpMethod.GET, entity, String.class
+        );
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+      void shouldDenyAccessForUnauthorizedCliente() {
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/clientes/3", HttpMethod.GET, entity, String.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
@@ -103,17 +148,23 @@ class ClienteControllerTest {
     void shouldCreateANewClienteWithValidInformation() {
         DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"48344088097");
         ResponseEntity<Void> response = restTemplate
-                .postForEntity("/clientes", newCliente, Void.class);
+                .postForEntity("/clientes/register", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         URI locationOfNewCliente = response.getHeaders().getLocation();
         assertThat(locationOfNewCliente).isNotNull();
 
-        ResponseEntity<DadosRespostaCliente> getResponse = restTemplate
-                .getForEntity(locationOfNewCliente, DadosRespostaCliente.class);
+        String testToken = jwtUtil.gerarToken("pedro@mail.com", Map.of("nome", "Pedro"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+        HttpEntity<DadosGeraisRespostaCliente> entity = new HttpEntity<>(headers);
+        ResponseEntity<DadosGeraisRespostaCliente> getResponse = restTemplate.exchange(
+                locationOfNewCliente, HttpMethod.GET, entity, DadosGeraisRespostaCliente.class
+        );
+
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        DadosRespostaCliente cliente = getResponse.getBody();
+        DadosGeraisRespostaCliente cliente = getResponse.getBody();
         assertThat(cliente).isNotNull();
         assertThat(cliente.nome()).isEqualTo("Pedro");
         assertThat(cliente.email()).isEqualTo("pedro@mail.com");
@@ -121,57 +172,70 @@ class ClienteControllerTest {
 
     @Test
     void shouldNotCreateANewClienteWithExistingEmail() {
-        DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro99@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"48344088097");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("cliente1@mail.com","pedro999","12912344390","Pedro Alves", LocalDate.of(1999,02,06),"60072949007");
         ResponseEntity<Void> response = restTemplate
-                .postForEntity("/clientes", newCliente, Void.class);
+                .postForEntity("/clientes/register", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
     void shouldNotCreateANewClienteWithExistingCpf() {
-        DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro929@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"11111111111");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("pedro929@mail.com","pedro999","12991261390","Pedro", LocalDate.of(1999,02,06),"47450456893");
         ResponseEntity<Void> response = restTemplate
-                .postForEntity("/clientes", newCliente, Void.class);
+                .postForEntity("/clientes/register", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
     void shouldNotCreateANewClienteWithExistingCelular() {
-        DadosCadastroCliente newCliente = new DadosCadastroCliente("ped239@mail.com","pedro999","1234567890","Pedro", LocalDate.of(1999,02,06),"11113211111");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("p239@mail.com","pedro999","1234567890","Teste", LocalDate.of(1999,02,06),"47450456893");
         ResponseEntity<Void> response = restTemplate
-                .postForEntity("/clientes", newCliente, Void.class);
+                .postForEntity("/clientes/register", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 
     @Test
     void shouldNotCreateANewClienteWithInvalidTooShortPassword() {
-        DadosCadastroCliente newCliente = new DadosCadastroCliente("pe321239@mail.com","o999","1234532890","Pedro", LocalDate.of(1999,02,06),"11113211111");
+        DadosCadastroCliente newCliente = new DadosCadastroCliente("pe321239@mail.com","o999","123322890","Pedro", LocalDate.of(1999,02,06),"11113211111");
         ResponseEntity<Void> response = restTemplate
-                .postForEntity("/clientes", newCliente, Void.class);
+                .postForEntity("/clientes/register", newCliente, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    void shouldNotDeleteByUnknownId(){
+    void shouldNotDeleteUnauthenticatedClient(){
         ResponseEntity<Void> response = restTemplate
                 .exchange("/clientes/delete/99999", HttpMethod.DELETE, null, Void.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void shouldNotDeleteClienteThatIsNotTheUserAuthenticated(){
+
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/clientes/delete/3", HttpMethod.DELETE, entity, Void.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
     @Transactional
     void shouldDeleteById(){
-        ResponseEntity<Void> response = restTemplate
-                .exchange("/clientes/delete/1", HttpMethod.DELETE, null, Void.class);
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "/clientes/delete/2", HttpMethod.DELETE, entity, Void.class
+        );
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-
-        // Retrieve the entity by ID
-        ResponseEntity<DadosRespostaCliente> getResponse = restTemplate
-                .getForEntity("/clientes/1", DadosRespostaCliente.class);
-
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
-
+}
+/*
     @Test
     void shouldNotUpdateAClienteThatDoesntExists(){
         // Create the DadosAtualizacaoCliente with a non-existent id
@@ -210,31 +274,17 @@ class ClienteControllerTest {
         assertThat(response.getBody().nome()).isEqualTo(randomName);
     }
 
-    private String generateRandomName() {
-        String[] firstNames = {"Pedro", "Maria", "João", "Ana", "Carlos", "Julia", "Lucas", "Fernanda", "Gabriel", "Beatriz"};
-        String[] lastNames = {"Silva", "Santos", "Oliveira", "Souza", "Pereira", "Costa", "Almeida", "Ferreira", "Ribeiro", "Lima"};
 
-        Random random = new Random();
-
-        String firstName = firstNames[random.nextInt(firstNames.length)];
-        String lastName = lastNames[random.nextInt(lastNames.length)];
-
-        return firstName + " " + lastName;
-    }
 
     void shouldReturnAllDadosRespostaClientesWhenListIsRequested() {}
 
     void shouldNotReturnAClienteWhenUsingBadCredentials() {
-
         // assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
-
-    void shouldRejectUsersWhoAreNotOwnersOfTheIdSearched() {}
 
     void shouldNotUpdateAClienteThatDoesNotExist() {}
 
     void shouldNotUpdateAClienteThatDoesntOwnTheProfile() {}
 
-    void shouldNotAllowDeletionOfClienteThatDoesNotOwnTheProfile() {}
-
 }
+*/

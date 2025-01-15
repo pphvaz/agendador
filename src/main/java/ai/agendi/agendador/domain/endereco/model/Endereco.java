@@ -147,6 +147,26 @@ public class Endereco {
     }
 
     @Override
+    public String toString() {
+        StringBuilder enderecoFormatado = new StringBuilder();
+        enderecoFormatado.append(logradouro)
+                .append(", ")
+                .append(numero);
+        if (complemento != null && !complemento.isEmpty()) {
+            enderecoFormatado.append(" - ").append(complemento);
+        }
+        enderecoFormatado.append(", ")
+                .append(bairro)
+                .append(", ")
+                .append(cidade)
+                .append(" - ")
+                .append(uf)
+                .append(", CEP: ")
+                .append(cep);
+        return enderecoFormatado.toString();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

@@ -4,5 +4,5 @@ import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 
-public record ResponseError(String mensagem, HttpStatus httpStatus, LocalDateTime timestamp ) {
+public record ResponseError(String mensagem, HttpStatus httpStatus, LocalDateTime timestamp, String path, String errorCode) {
 }

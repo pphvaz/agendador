@@ -26,13 +26,11 @@ public class Estabelecimento {
     private boolean ativo;
 
     @NotNull
-    @Column(nullable = false)
     @OneToOne(fetch = FetchType.LAZY)
     private Prestador proprietario;
 
     @NotNull
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "estabelecimento")
-    @Column(nullable = false)
     private Endereco endereco;
 
     @OneToMany(mappedBy = "estabelecimento", cascade = CascadeType.ALL)

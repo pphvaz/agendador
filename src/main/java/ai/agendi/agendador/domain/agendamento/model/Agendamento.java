@@ -3,7 +3,6 @@ package ai.agendi.agendador.domain.agendamento.model;
 import ai.agendi.agendador.domain.agendamento.enums.MotivosCancelamento;
 import ai.agendi.agendador.domain.agendamento.enums.Status;
 import ai.agendi.agendador.domain.endereco.model.Endereco;
-import ai.agendi.agendador.domain.estabelecimento.model.Servico;
 import ai.agendi.agendador.domain.usuario.model.Cliente;
 import ai.agendi.agendador.domain.usuario.model.Prestador;
 import jakarta.persistence.*;
@@ -25,18 +24,12 @@ public class Agendamento {
     private Long id;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @NotNull
-    @Column(nullable = false)
     private Cliente cliente;
 
-    @NotNull
     @OneToOne(fetch = FetchType.LAZY)
-    @Column(nullable = false)
     private Prestador prestador;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @Column(nullable = false)
-    @NotNull
     private Endereco endereco;
 
     @NotNull
@@ -68,8 +61,8 @@ public class Agendamento {
 
     @OneToOne(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true)
     private Avaliacao avaliacao;
-    @ManyToOne(fetch = FetchType.LAZY)
 
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "remarcado_de_id")
     private Agendamento remarcadoDe; // agendamento original, se for essa entidade for remarcação
 
