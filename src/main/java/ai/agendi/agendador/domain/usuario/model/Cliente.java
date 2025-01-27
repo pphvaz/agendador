@@ -1,6 +1,5 @@
 package ai.agendi.agendador.domain.usuario.model;
 
-import ai.agendi.agendador.domain.endereco.model.Endereco;
 import ai.agendi.agendador.domain.usuario.dto.DadosAtualizacaoCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroCliente;
 import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
@@ -8,8 +7,6 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Pattern;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "clientes")
@@ -51,5 +48,20 @@ public class Cliente extends Usuario {
 
     public void setSaldo(BigDecimal saldo) {
         this.saldo = saldo;
+    }
+
+    public void atualizarDadosCliente(DadosAtualizacaoCliente atualizados) {
+        if (atualizados.getNovoNome() != null) {
+            setNome(atualizados.getNovoNome());
+        }
+        if (atualizados.getNovoEmail() != null) {
+            setEmail(atualizados.getNovoEmail());
+        }
+        if (atualizados.getNovoCelular() != null) {
+            setCelular(atualizados.getNovoCelular());
+        }
+        if (atualizados.getNovaDataNascimento() != null) {
+            setDataNascimento(atualizados.getNovaDataNascimento());
+        }
     }
 }

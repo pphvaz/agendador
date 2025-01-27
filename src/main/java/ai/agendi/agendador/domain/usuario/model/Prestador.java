@@ -2,6 +2,8 @@ package ai.agendi.agendador.domain.usuario.model;
 
 import ai.agendi.agendador.domain.estabelecimento.model.Estabelecimento;
 import ai.agendi.agendador.domain.estabelecimento.model.Servico;
+import ai.agendi.agendador.domain.usuario.dto.DadosCadastroPrestador;
+import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,8 +15,7 @@ import java.util.Set;
 public class Prestador extends Usuario {
 
     private Integer anosDeExperiencia;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @NotNull
     @JoinColumn(nullable = false, updatable = false)
     private Estabelecimento estabelecimento;
@@ -33,6 +34,15 @@ public class Prestador extends Usuario {
             uniqueConstraints = @UniqueConstraint(columnNames = {"prestador_id", "servico_id"})
     )
     private Set<Servico> servicosOfereceridos;
+
+    public Prestador(DadosCadastroPrestador dadosCadastro, DadosCadastroUsuario dadosUsuario, Estabelecimento estabelecimento) {
+        super(dadosUsuario);
+        this.anosDeExperiencia = dadosCadastro.getAnosDeExperiencia();
+        this.atendeDomicilio = dadosCadastro.getAtendeDomicilio();
+        this.isManager = dadosCadastro.getIsManager();
+        this.isOwner = dadosCadastro.getIsOwner();
+        this.estabelecimento = estabelecimento;
+    }
 
     public Prestador () {}
 

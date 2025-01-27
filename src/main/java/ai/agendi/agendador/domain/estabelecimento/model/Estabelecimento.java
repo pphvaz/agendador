@@ -1,7 +1,8 @@
 package ai.agendi.agendador.domain.estabelecimento.model;
 
 import ai.agendi.agendador.domain.agendamento.model.Combo;
-import ai.agendi.agendador.domain.endereco.model.Endereco;
+import ai.agendi.agendador.domain.usuario.dto.DadosCadastroEstabelecimento;
+import ai.agendi.agendador.domain.usuario.model.Endereco;
 import ai.agendi.agendador.domain.usuario.model.Cliente;
 import ai.agendi.agendador.domain.usuario.model.Prestador;
 import jakarta.persistence.*;
@@ -25,16 +26,11 @@ public class Estabelecimento {
     private LocalDateTime dataCadastro;
     private boolean ativo;
 
-    @NotNull
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     private Prestador proprietario;
 
-    @NotNull
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "estabelecimento")
-    private Endereco endereco;
-
     @OneToMany(mappedBy = "estabelecimento", cascade = CascadeType.ALL)
-    private List<Prestador> prestadores;
+    private List<Prestador> prestadores = new ArrayList<>();
 
     @OneToMany(mappedBy = "estabelecimento", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HorarioFuncionamento> horariosDeFuncionamento;
@@ -49,6 +45,12 @@ public class Estabelecimento {
     private List<Combo> combosDisponiveis;
 
     public Estabelecimento() {}
+
+    public Estabelecimento (DadosCadastroEstabelecimento dadosEstabelecimento){
+        this.nome = dadosEstabelecimento.getNome();
+        this.dataCadastro = LocalDateTime.now();
+        this.ativo = true;
+    }
 
     public Long getId() {
         return id;
@@ -88,14 +90,6 @@ public class Estabelecimento {
 
     public void setProprietario(Prestador proprietario) {
         this.proprietario = proprietario;
-    }
-
-    public Endereco getEndereco() {
-        return endereco;
-    }
-
-    public void setEndereco(Endereco endereco) {
-        this.endereco = endereco;
     }
 
     public List<Prestador> getPrestadores() {

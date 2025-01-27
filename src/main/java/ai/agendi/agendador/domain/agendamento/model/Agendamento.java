@@ -2,7 +2,7 @@ package ai.agendi.agendador.domain.agendamento.model;
 
 import ai.agendi.agendador.domain.agendamento.enums.MotivosCancelamento;
 import ai.agendi.agendador.domain.agendamento.enums.Status;
-import ai.agendi.agendador.domain.endereco.model.Endereco;
+import ai.agendi.agendador.domain.usuario.model.Endereco;
 import ai.agendi.agendador.domain.usuario.model.Cliente;
 import ai.agendi.agendador.domain.usuario.model.Prestador;
 import jakarta.persistence.*;

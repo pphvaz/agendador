@@ -1,10 +1,9 @@
-package ai.agendi.agendador.domain.endereco.model;
+package ai.agendi.agendador.domain.usuario.model;
 
 import ai.agendi.agendador.domain.estabelecimento.model.Estabelecimento;
-import ai.agendi.agendador.domain.usuario.model.Cliente;
+import ai.agendi.agendador.domain.usuario.dto.DadosCadastroEndereco;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -42,7 +41,8 @@ public class Endereco {
     private String uf;
     private String complemento;
     private boolean ativo;
-    private LocalDateTime dataExclusao;
+    private LocalDateTime created_at;
+    private LocalDateTime deleted_at;
 
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "endereco")
     private Cliente cliente;
@@ -50,12 +50,36 @@ public class Endereco {
     @OneToOne(fetch = FetchType.LAZY)
     private Estabelecimento estabelecimento;
 
+    public Endereco(DadosCadastroEndereco dadosEndereco) {
+        this.cep = dadosEndereco.cep();
+        this.logradouro = dadosEndereco.logradouro();
+        this.numero = dadosEndereco.numero();
+        this.bairro = dadosEndereco.bairro();
+        this.cidade = dadosEndereco.cidade();
+        this.uf = dadosEndereco.uf();
+        this.complemento = dadosEndereco.complemento();
+        this.ativo = true;
+        this.created_at = LocalDateTime.now();
+        if (dadosEndereco.cliente() != null) {
+            this.cliente = dadosEndereco.cliente();
+        }
+        else if (dadosEndereco.estabelecimento() != null) {
+            this.estabelecimento = dadosEndereco.estabelecimento();
+        }
+    }
+
+    public Endereco() {}
+
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public LocalDateTime getCreated_at() {
+        return created_at;
     }
 
     public String getCep() {
@@ -123,11 +147,11 @@ public class Endereco {
     }
 
     public LocalDateTime getDataExclusao() {
-        return dataExclusao;
+        return deleted_at;
     }
 
     public void setDataExclusao(LocalDateTime dataExclusao) {
-        this.dataExclusao = dataExclusao;
+        this.deleted_at = dataExclusao;
     }
 
     public Cliente getCliente() {

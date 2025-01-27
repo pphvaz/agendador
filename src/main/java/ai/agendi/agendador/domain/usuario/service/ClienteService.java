@@ -1,11 +1,9 @@
 package ai.agendi.agendador.domain.usuario.service;
 
-import ai.agendi.agendador.domain.usuario.dto.DadosCadastroCliente;
-import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
-import ai.agendi.agendador.domain.usuario.dto.DadosGeraisRespostaCliente;
-import ai.agendi.agendador.domain.usuario.dto.DadosPessoaisRespostaCliente;
+import ai.agendi.agendador.domain.usuario.dto.*;
 import ai.agendi.agendador.domain.usuario.enums.Perfil;
 import ai.agendi.agendador.domain.usuario.model.Cliente;
+import ai.agendi.agendador.infra.exceptions.ValidacaoException;
 import org.springframework.security.access.AccessDeniedException;
 // import ai.agendi.agendador.domain.usuario.repository.ClienteRepository;
 import ai.agendi.agendador.domain.usuario.repository.ClienteRepository;
@@ -20,6 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,8 +39,7 @@ public class ClienteService {
 
     public DadosPessoaisRespostaCliente register(DadosCadastroCliente dadosCliente) {
         String senhaCriptografada = passwordEncoder.encode(dadosCliente.senha());
-        Set<Perfil> perfis = new HashSet<>();
-        perfis.add(Perfil.ROLE_CLIENTE);
+        var perfis = Set.of(Perfil.ROLE_CLIENTE);
 
         DadosCadastroUsuario dadosUsuario = new DadosCadastroUsuario(
                 dadosCliente.email(),
@@ -81,13 +80,42 @@ public class ClienteService {
         Cliente cliente = clienteRepository.findByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
 
-        if (!cliente.getId().equals(authenticated.getId())) {
+        if (!usuarioTemAcessoAoPerfil(cliente, authenticated)) {
             throw new AccessDeniedException("Você não tem permissão para acessar esses dados");
         }
         int updatedRows = clienteRepository.logicalDeletionByClienteId(id);
         if (updatedRows == 0) {
             throw new EntityNotFoundException("Cliente with ID " + id + " not found.");
         }
+    }
+
+    public DadosPessoaisRespostaCliente update(DadosAtualizacaoCliente atualizados, Authentication authentication) {
+        Cliente authenticated = (Cliente) authentication.getPrincipal();
+        Cliente cliente = clienteRepository.findById(atualizados.getId())
+                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
+
+        if (!usuarioTemAcessoAoPerfil(cliente, authenticated)) {
+            throw new AccessDeniedException("Você não tem permissão para acessar esses dados");
+        }
+
+        if (isRecentChange(cliente.getDataAtualizacaoNascimento())) {
+            throw new ValidacaoException("Não é permitido alterar a data de nascimento em um curto período de tempo.");
+        }
+
+        cliente.atualizarDadosCliente(atualizados);
+        clienteRepository.saveAndFlush(cliente);
+        return new DadosPessoaisRespostaCliente(cliente);
+    }
+
+    private boolean isRecentChange(LocalDateTime lastUpdated) {
+        if (lastUpdated == null) {
+            return false;
+        }
+        return Duration.between(lastUpdated, LocalDateTime.now()).toDays() < 30;
+    }
+
+    private boolean usuarioTemAcessoAoPerfil(Cliente solicitador, Cliente autenticado) {
+        return solicitador.getId().equals(autenticado.getId());
     }
 }
 /*
@@ -103,24 +131,5 @@ public class ClienteService {
         return new DadosRespostaCliente(clienteRepository.findByCelularAndAtivoTrue(celular));
     }
 
-    public DadosRespostaCliente update(DadosAtualizacaoCliente atualizados) {
-        Cliente cliente = clienteRepository.findById(atualizados.getId())
-                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
-
-        if (isRecentChange(cliente.getDataAtualizacaoNascimento())) {
-            throw new ValidacaoException("Não é permitido alterar a data de nascimento em um curto período de tempo.");
-        }
-
-        cliente.atualizarDadosCliente(atualizados);
-        clienteRepository.saveAndFlush(cliente);
-        return new DadosRespostaCliente(cliente);
-    }
-
-    private boolean isRecentChange(LocalDateTime lastUpdated) {
-        if (lastUpdated == null) {
-            return false;
-        }
-        return Duration.between(lastUpdated, LocalDateTime.now()).toDays() < 30;
-    }
 }
 */

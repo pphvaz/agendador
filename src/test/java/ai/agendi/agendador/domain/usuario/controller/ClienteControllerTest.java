@@ -1,13 +1,15 @@
 package ai.agendi.agendador.domain.usuario.controller;
 
-import ai.agendi.agendador.domain.usuario.dto.DadosCadastroCliente;
-import ai.agendi.agendador.domain.usuario.dto.DadosCadastroUsuario;
-import ai.agendi.agendador.domain.usuario.dto.DadosGeraisRespostaCliente;
+import ai.agendi.agendador.domain.usuario.dto.*;
 import ai.agendi.agendador.domain.usuario.enums.Perfil;
 import ai.agendi.agendador.domain.usuario.model.Cliente;
+import ai.agendi.agendador.domain.usuario.model.Usuario;
 import ai.agendi.agendador.domain.usuario.repository.ClienteRepository;
+import ai.agendi.agendador.domain.usuario.repository.UsuarioRepository;
 import ai.agendi.agendador.utils.JwtTestUtil;
 import ai.agendi.agendador.utils.TestUtilities;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.annotation.PostConstruct;
@@ -16,17 +18,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Transactional
@@ -39,12 +42,19 @@ class ClienteControllerTest {
     @Autowired
     private ClienteRepository clienteRepository;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
     private final JwtTestUtil jwtUtil = new JwtTestUtil();
 
     private final TestUtilities utils = new TestUtilities();
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @PostConstruct
     public void populateData() {
+
         Set<Perfil> perfis = new HashSet<>();
         perfis.add(Perfil.ROLE_CLIENTE);
         if (clienteRepository.count() == 0) {
@@ -93,30 +103,46 @@ class ClienteControllerTest {
             clienteRepository.save(cliente1);
             clienteRepository.save(cliente2);
             clienteRepository.save(cliente3);
+
+            Usuario admin = new Usuario();
+            String encryptedPassword = passwordEncoder.encode("password");
+
+            admin.setEmail("admin@admin.com");
+            admin.setNome("Admin");
+            admin.setCelular("12991232910");
+            admin.setDataNascimento(LocalDate.of(1999,02,01));
+            admin.setSenha(encryptedPassword);
+            admin.setAtivo(true);
+            admin.setDiaDeCadastro(LocalDateTime.now());
+
+            Set<Perfil> perfisAdmin = new HashSet<>();
+            perfisAdmin.add(Perfil.ROLE_ADMIN);
+            admin.setPerfis(perfisAdmin);
+
+            usuarioRepository.save(admin);
         }
+
     }
 
     @Test
     void shouldReturnADadosRespostaClienteWhenDataIsSaved() {
-        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        String testToken = jwtUtil.gerarToken("cliente3@mail.com", Map.of("nome", "Roberto Souza"));
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(testToken);
 
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         ResponseEntity<String> response = restTemplate.exchange(
-                "/clientes/2", HttpMethod.GET, entity, String.class
+                "/clientes/3", HttpMethod.GET, entity, String.class
         );
         // Assert the response
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         DocumentContext documentContext = JsonPath.parse(response.getBody());
-        Number id = documentContext.read("$.id");
         String nome = documentContext.read("$.nome");
         String email = documentContext.read("$.email");
-        assertThat(id).isEqualTo(2);
-        assertThat(nome).isEqualTo("Ana Oliveira");
-        assertThat(email).isEqualTo("cliente2@mail.com");
+        assertThat(nome).isEqualTo("Roberto Souza");
+        assertThat(email).isEqualTo("cliente3@mail.com");
     }
 
     @Test
@@ -132,7 +158,7 @@ class ClienteControllerTest {
     }
 
     @Test
-      void shouldDenyAccessForUnauthorizedCliente() {
+    void shouldDenyAccessForUnauthorizedCliente() {
         String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(testToken);
@@ -234,10 +260,14 @@ class ClienteControllerTest {
         );
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
-}
-/*
+
     @Test
     void shouldNotUpdateAClienteThatDoesntExists(){
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
         // Create the DadosAtualizacaoCliente with a non-existent id
         DadosAtualizacaoCliente dadosAtualizacao = new DadosAtualizacaoCliente();
         dadosAtualizacao.setId(99999L);
@@ -252,39 +282,47 @@ class ClienteControllerTest {
         );
 
         // Assert that the status code is NOT_FOUND
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    void shouldUpdateAnExistingClienteName() {
+    void shouldUpdateAnExistingClienteName() throws JsonProcessingException {
+
         // Create the DadosAtualizacaoCliente with a non-existent id
-        String randomName = generateRandomName();
+        String randomName = utils.generateRandomName();
         DadosAtualizacaoCliente dadosAtualizacao = new DadosAtualizacaoCliente();
-        dadosAtualizacao.setId(3L);
+        dadosAtualizacao.setId(1L);
         dadosAtualizacao.setNovoNome(randomName);
 
+        String testToken = jwtUtil.gerarToken("cliente1@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
+
+        HttpEntity<DadosAtualizacaoCliente> entity = new HttpEntity<>(dadosAtualizacao, headers);
+
         // Perform the PUT request with the dadosAtualizacao object in the body
-        ResponseEntity<DadosRespostaCliente> response = restTemplate.exchange(
+        ResponseEntity<DadosPessoaisRespostaCliente> response = restTemplate.exchange(
                 "/clientes/update",
                 HttpMethod.PUT,
-                new HttpEntity<>(dadosAtualizacao),
-                DadosRespostaCliente.class
+                entity,
+                DadosPessoaisRespostaCliente.class
         );
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().nome()).isEqualTo(randomName);
     }
 
+    @Test
+    void shouldNotReturnAllDadosRespostaClientesForANonAdminUser() {
+        String testToken = jwtUtil.gerarToken("cliente2@mail.com", Map.of("nome", "Ana Oliveira"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(testToken);
 
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-    void shouldReturnAllDadosRespostaClientesWhenListIsRequested() {}
-
-    void shouldNotReturnAClienteWhenUsingBadCredentials() {
-        // assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/clientes", HttpMethod.GET, entity, String.class
+        );
+        // Assert the response
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
-
-    void shouldNotUpdateAClienteThatDoesNotExist() {}
-
-    void shouldNotUpdateAClienteThatDoesntOwnTheProfile() {}
-
 }
-*/
